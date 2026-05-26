@@ -12,6 +12,14 @@ export interface Config {
     password: string;
     name: string;
   };
+  email: {
+    host: string;
+    port: number;
+    user: string;
+    password: string;
+    fromAddress: string;
+    resetTokenExpiresIn: number;
+  };
   jwt: {
     secret: string;
     accessExpiresIn: number;
@@ -40,6 +48,14 @@ export function load(): Config {
       user: process.env.DB_USER ?? 'tasqalent',
       password: process.env.DB_PASSWORD ?? 'tq_password',
       name: process.env.DB_NAME ?? 'tq_auth',
+    },
+    email: {
+      host: process.env.SMTP_HOST ?? '',
+      port: Number(process.env.SMTP_PORT) || 587,
+      user: process.env.SMTP_USER ?? '',
+      password: process.env.SMTP_PASSWORD ?? '',
+      fromAddress: process.env.SMTP_FROM ?? 'noreply@tasqalent.com',
+      resetTokenExpiresIn: parseDuration(process.env.RESET_TOKEN_EXPIRES_IN ?? '1h', 3600),
     },
     jwt: {
       secret: process.env.JWT_SECRET ?? 'dev-secret-change-in-production',

@@ -68,3 +68,31 @@ export function logout(_cfg: Config) {
     }
   };
 }
+
+export function forgotPassword(cfg: Config) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const pool = getPool(cfg);
+      await authService.forgotPassword(pool, cfg, req.body.email);
+      success(res, { message: 'If the email exists, a reset link has been sent' });
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+
+export function resetPassword(cfg: Config) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const pool = getPool(cfg);
+      await authService.resetPassword(pool, cfg, req.body.token, req.body.password);
+      success(res, { message: 'Password has been reset successfully' });
+    } catch (err) {
+      if (err instanceof authService.AuthError) {
+        errorResponse(res, err.code, err.message, HTTP_STATUS.UNAUTHORIZED);
+        return;
+      }
+      next(err);
+    }
+  };
+}

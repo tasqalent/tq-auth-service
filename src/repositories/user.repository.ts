@@ -14,6 +14,14 @@ interface RefreshTokenRow {
   expires_at: Date;
 }
 
+interface ResetTokenRow {
+  id: string;
+  user_id: string;
+  token_hash: string;
+  expires_at: Date;
+  used: boolean;
+}
+
 export async function insertUser(
   pool: Pool,
   params: { email: string; username: string; passwordHash: string }
@@ -89,6 +97,47 @@ export async function findRefreshToken(
 
 export async function deleteRefreshToken(pool: Pool, tokenHash: string): Promise<void> {
   await pool.execute('DELETE FROM refresh_tokens WHERE token_hash = ?', [tokenHash]);
+}
+
+export async function deleteRefreshTokensByUserId(pool: Pool, userId: string): Promise<void> {
+  await pool.execute('DELETE FROM refresh_tokens WHERE user_id = ?', [userId]);
+}
+
+export async function insertResetToken(
+  pool: Pool,
+  params: { userId: string; tokenHash: string; expiresAt: Date }
+): Promise<void> {
+  const id = randomUUID();
+  await pool.execute<ResultSetHeader>(
+    'INSERT INTO reset_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)',
+    [id, params.userId, params.tokenHash, params.expiresAt]
+  );
+}
+
+export async function findValidResetToken(
+  pool: Pool,
+  tokenHash: string
+): Promise<ResetTokenRow | null> {
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    'SELECT * FROM reset_tokens WHERE token_hash = ? AND expires_at > NOW() AND used = FALSE',
+    [tokenHash]
+  );
+  return rows.length ? (rows[0] as ResetTokenRow) : null;
+}
+
+export async function markResetTokenUsed(pool: Pool, tokenHash: string): Promise<void> {
+  await pool.execute('UPDATE reset_tokens SET used = TRUE WHERE token_hash = ?', [tokenHash]);
+}
+
+export async function updatePassword(
+  pool: Pool,
+  userId: string,
+  passwordHash: string
+): Promise<void> {
+  await pool.execute<ResultSetHeader>(
+    'UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?',
+    [passwordHash, userId]
+  );
 }
 
 function mapRow(row: RowDataPacket): UserRow {

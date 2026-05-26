@@ -5,6 +5,7 @@ import { ERROR_CODES } from '@tasqalent/shared';
 import type { Config } from '../config/config';
 import * as tokenService from './token.service';
 import * as userRepo from '../repositories/user.repository';
+import { sendPasswordResetEmail } from './email.service';
 
 const SALT_ROUNDS = 12;
 
@@ -131,4 +132,47 @@ export async function refresh(
 export async function logout(pool: Pool, refreshTokenPlain: string): Promise<void> {
   const tokenHash = tokenService.hashRefreshToken(refreshTokenPlain);
   await userRepo.deleteRefreshToken(pool, tokenHash);
+}
+
+export async function forgotPassword(
+  pool: Pool,
+  cfg: Config,
+  email: string
+): Promise<string | null> {
+  const user = await userRepo.findUserByEmail(pool, email);
+  if (!user) {
+    return null;
+  }
+
+  const token = tokenService.generateRefreshToken();
+  const expiresAt = new Date(Date.now() + cfg.email.resetTokenExpiresIn * 1000);
+
+  await userRepo.insertResetToken(pool, {
+    userId: user.id,
+    tokenHash: token.hash,
+    expiresAt,
+  });
+
+  return sendPasswordResetEmail(cfg, user.email, token.plain);
+}
+
+export async function resetPassword(
+  pool: Pool,
+  cfg: Config,
+  tokenPlain: string,
+  newPassword: string
+): Promise<void> {
+  const tokenHash = tokenService.hashRefreshToken(tokenPlain);
+  const stored = await userRepo.findValidResetToken(pool, tokenHash);
+  if (!stored) {
+    throw new AuthError(ERROR_CODES.UNAUTHORIZED, 'Invalid or expired reset token');
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+  await userRepo.markResetTokenUsed(pool, tokenHash);
+
+  await userRepo.updatePassword(pool, stored.user_id, passwordHash);
+
+  await userRepo.deleteRefreshTokensByUserId(pool, stored.user_id);
 }
