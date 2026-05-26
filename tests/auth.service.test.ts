@@ -8,6 +8,15 @@ const mockCfg: Config = {
   port: 0,
   logLevel: 'silent',
   db: { host: '', port: 0, user: '', password: '', name: '' },
+  email: {
+    host: '',
+    port: 587,
+    user: '',
+    password: '',
+    fromAddress: 'noreply@tasqalent.com',
+    resetTokenExpiresIn: 3600,
+    verifyTokenExpiresIn: 86400,
+  },
   jwt: { secret: 'test-secret', accessExpiresIn: 900, refreshExpiresIn: 604800, issuer: 'test' },
 };
 
@@ -56,9 +65,9 @@ describe('AuthService', () => {
         username: 'newguy',
         password: '12345678',
       });
-      expect(result.user.email).toBe('new@b.com');
-      expect(result.tokens.accessToken).toBeTruthy();
-      expect(result.tokens.refreshToken).toBeTruthy();
+      expect(result.email).toBe('new@b.com');
+      expect(result.username).toBe('newguy');
+      expect(result.id).toBeTruthy();
     });
   });
 
