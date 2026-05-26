@@ -24,7 +24,7 @@ export async function register(
   pool: Pool,
   cfg: Config,
   params: { email: string; username: string; password: string }
-): Promise<{ user: Omit<User, 'updatedAt'>; tokens: tokenService.TokenPair }> {
+): Promise<{ id: string; email: string; username: string }> {
   const existingEmail = await userRepo.findUserByEmail(pool, params.email);
   if (existingEmail) throw new AuthError(ERROR_CODES.CONFLICT, 'Email already registered');
 
@@ -43,24 +43,10 @@ export async function register(
   await userRepo.updateVerificationToken(pool, user.id, verifyToken.hash, verifyExpiresAt);
   sendVerificationEmail(cfg, user.email, verifyToken.plain);
 
-  const accessToken = tokenService.signAccessToken(user, cfg);
-  const refreshToken = tokenService.generateRefreshToken();
-  const expiresAt = new Date(Date.now() + cfg.jwt.refreshExpiresIn * 1000);
-  await userRepo.insertRefreshToken(pool, {
-    userId: user.id,
-    tokenHash: refreshToken.hash,
-    expiresAt,
-  });
-
   return {
-    user: {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      role: user.role,
-      createdAt: user.createdAt,
-    },
-    tokens: { accessToken, refreshToken: refreshToken.plain, expiresIn: 900 },
+    id: user.id,
+    email: user.email,
+    username: user.username,
   };
 }
 
@@ -100,6 +86,10 @@ export async function login(
 
   const match = await bcrypt.compare(params.password, user.passwordHash);
   if (!match) throw new AuthError(ERROR_CODES.UNAUTHORIZED, 'Invalid credentials');
+
+  if (!user.isVerified) {
+    throw new AuthError(ERROR_CODES.FORBIDDEN, 'Please verify your email before logging in');
+  }
 
   const accessToken = tokenService.signAccessToken(user, cfg);
   const refreshToken = tokenService.generateRefreshToken();

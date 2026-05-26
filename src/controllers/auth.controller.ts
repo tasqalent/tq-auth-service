@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { HTTP_STATUS, success, errorResponse } from '@tasqalent/shared';
+import { HTTP_STATUS, success, errorResponse, ERROR_CODES } from '@tasqalent/shared';
 import { getPool } from '../db/pool';
 import * as authService from '../services/auth.service';
 import type { Config } from '../config/config';
@@ -9,7 +9,14 @@ export function register(cfg: Config) {
     try {
       const pool = getPool(cfg);
       const result = await authService.register(pool, cfg, req.body);
-      success(res, result, HTTP_STATUS.CREATED);
+      success(
+        res,
+        {
+          user: result,
+          message: 'Account created. Please check your email to verify your account.',
+        },
+        HTTP_STATUS.CREATED
+      );
     } catch (err) {
       if (err instanceof authService.AuthError) {
         errorResponse(
@@ -33,7 +40,9 @@ export function login(cfg: Config) {
       success(res, result);
     } catch (err) {
       if (err instanceof authService.AuthError) {
-        errorResponse(res, err.code, err.message, HTTP_STATUS.UNAUTHORIZED);
+        const status =
+          err.code === ERROR_CODES.FORBIDDEN ? HTTP_STATUS.FORBIDDEN : HTTP_STATUS.UNAUTHORIZED;
+        errorResponse(res, err.code, err.message, status);
         return;
       }
       next(err);
