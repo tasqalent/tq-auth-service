@@ -5,7 +5,7 @@ import { ERROR_CODES } from '@tasqalent/shared';
 import type { Config } from '../config/config';
 import * as tokenService from './token.service';
 import * as userRepo from '../repositories/user.repository';
-import { sendPasswordResetEmail } from './email.service';
+import { sendPasswordResetEmail, sendVerificationEmail } from './email.service';
 
 const SALT_ROUNDS = 12;
 
@@ -38,9 +38,13 @@ export async function register(
     passwordHash,
   });
 
+  const verifyToken = tokenService.generateRefreshToken();
+  const verifyExpiresAt = new Date(Date.now() + cfg.email.verifyTokenExpiresIn * 1000);
+  await userRepo.updateVerificationToken(pool, user.id, verifyToken.hash, verifyExpiresAt);
+  sendVerificationEmail(cfg, user.email, verifyToken.plain);
+
   const accessToken = tokenService.signAccessToken(user, cfg);
   const refreshToken = tokenService.generateRefreshToken();
-
   const expiresAt = new Date(Date.now() + cfg.jwt.refreshExpiresIn * 1000);
   await userRepo.insertRefreshToken(pool, {
     userId: user.id,
@@ -58,6 +62,32 @@ export async function register(
     },
     tokens: { accessToken, refreshToken: refreshToken.plain, expiresIn: 900 },
   };
+}
+
+export async function verifyEmail(pool: Pool, cfg: Config, tokenPlain: string): Promise<void> {
+  const tokenHash = tokenService.hashRefreshToken(tokenPlain);
+  const user = await userRepo.findByVerificationToken(pool, tokenHash);
+  if (!user) {
+    throw new AuthError(ERROR_CODES.UNAUTHORIZED, 'Invalid or expired verification token');
+  }
+  await userRepo.verifyUser(pool, user.id);
+}
+
+export async function resendVerification(
+  pool: Pool,
+  cfg: Config,
+  email: string
+): Promise<string | null> {
+  const user = await userRepo.findUserByEmail(pool, email);
+  if (!user || user.isVerified) {
+    return null;
+  }
+
+  const token = tokenService.generateRefreshToken();
+  const expiresAt = new Date(Date.now() + cfg.email.verifyTokenExpiresIn * 1000);
+  await userRepo.updateVerificationToken(pool, user.id, token.hash, expiresAt);
+
+  return sendVerificationEmail(cfg, user.email, token.plain);
 }
 
 export async function login(

@@ -19,6 +19,7 @@ export interface Config {
     password: string;
     fromAddress: string;
     resetTokenExpiresIn: number;
+    verifyTokenExpiresIn: number;
   };
   jwt: {
     secret: string;
@@ -56,6 +57,7 @@ export function load(): Config {
       password: process.env.SMTP_PASSWORD ?? '',
       fromAddress: process.env.SMTP_FROM ?? 'noreply@tasqalent.com',
       resetTokenExpiresIn: parseDuration(process.env.RESET_TOKEN_EXPIRES_IN ?? '1h', 3600),
+      verifyTokenExpiresIn: parseDuration(process.env.VERIFY_TOKEN_EXPIRES_IN ?? '24h', 86400),
     },
     jwt: {
       secret: process.env.JWT_SECRET ?? 'dev-secret-change-in-production',

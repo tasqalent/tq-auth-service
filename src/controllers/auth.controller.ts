@@ -96,3 +96,31 @@ export function resetPassword(cfg: Config) {
     }
   };
 }
+
+export function verifyEmail(cfg: Config) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const pool = getPool(cfg);
+      await authService.verifyEmail(pool, cfg, req.body.token);
+      success(res, { message: 'Email verified successfully' });
+    } catch (err) {
+      if (err instanceof authService.AuthError) {
+        errorResponse(res, err.code, err.message, HTTP_STATUS.UNAUTHORIZED);
+        return;
+      }
+      next(err);
+    }
+  };
+}
+
+export function resendVerification(cfg: Config) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const pool = getPool(cfg);
+      await authService.resendVerification(pool, cfg, req.body.email);
+      success(res, { message: 'If the email exists, a verification link has been sent' });
+    } catch (err) {
+      next(err);
+    }
+  };
+}

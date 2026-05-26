@@ -23,3 +23,11 @@ export const resetPasswordSchema = Joi.object({
   token: Joi.string().required(),
   password: Joi.string().min(8).max(128).required(),
 });
+
+export const verifyEmailSchema = Joi.object({
+  token: Joi.string().required(),
+});
+
+export const resendVerificationSchema = Joi.object({
+  email: Joi.string().email().required(),
+});

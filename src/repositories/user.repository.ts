@@ -140,6 +140,36 @@ export async function updatePassword(
   );
 }
 
+export async function updateVerificationToken(
+  pool: Pool,
+  userId: string,
+  tokenHash: string,
+  expiresAt: Date
+): Promise<void> {
+  await pool.execute<ResultSetHeader>(
+    'UPDATE users SET verification_token_hash = ?, verification_token_expires_at = ? WHERE id = ?',
+    [tokenHash, expiresAt, userId]
+  );
+}
+
+export async function findByVerificationToken(
+  pool: Pool,
+  tokenHash: string
+): Promise<UserRow | null> {
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    'SELECT * FROM users WHERE verification_token_hash = ? AND verification_token_expires_at > NOW()',
+    [tokenHash]
+  );
+  return rows.length ? mapRow(rows[0]) : null;
+}
+
+export async function verifyUser(pool: Pool, userId: string): Promise<void> {
+  await pool.execute<ResultSetHeader>(
+    'UPDATE users SET is_verified = TRUE, verification_token_hash = NULL, verification_token_expires_at = NULL WHERE id = ?',
+    [userId]
+  );
+}
+
 function mapRow(row: RowDataPacket): UserRow {
   return {
     id: row.id,
