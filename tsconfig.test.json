@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "include": ["src", "tests"],
   "compilerOptions": {
-    "outDir": "dist-test",
+    "outDir": "./dist-test",
     "rootDir": ".",
     "types": ["jest", "node"]
   }

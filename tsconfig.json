@@ -9,11 +9,11 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "noEmitOnError": true,
-    "outDir": "dist",
+    "outDir": "./dist",
     "rootDir": "./src",
     "sourceMap": true,
     "strict": true,
-    "target": "es5",
+    "target": "es2022",
     "forceConsistentCasingInFileNames": true,
     "pretty": true,
     "resolveJsonModule": true
