@@ -101,7 +101,7 @@ export function resetPassword(cfg: Config) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const pool = getPool(cfg);
-      await authService.resetPassword(pool, cfg, req.body.token, req.body.password);
+      await authService.resetPassword(pool, req.body.token, req.body.password);
       success(res, { message: 'Password has been reset successfully' });
     } catch (err) {
       if (err instanceof authService.AuthError) {
