@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import type { Config } from './config/config';
 import { createLogger, requestIdMiddleware, errorMiddleware } from '@tasqalent/shared';
 import { routes } from './routes';
@@ -15,6 +16,8 @@ export async function createApp(cfg: Config) {
   const app = express();
 
   app.set('trust proxy', 1);
+
+  app.use(helmet({ hsts: false }));
 
   app.use(express.json());
 
