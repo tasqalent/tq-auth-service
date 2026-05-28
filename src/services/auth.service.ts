@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import type { Pool } from 'mysql2/promise';
-import type { User } from '@tasqalent/shared';
+import type { LoginRequest, RegisterRequest, TokenPair, User } from '@tasqalent/shared';
 import { ERROR_CODES } from '@tasqalent/shared';
 import type { Config } from '../config/config';
 import * as tokenService from './token.service';
@@ -23,7 +23,7 @@ export class AuthError extends Error {
 export async function register(
   pool: Pool,
   cfg: Config,
-  params: { email: string; username: string; password: string }
+  params: RegisterRequest
 ): Promise<{ id: string; email: string; username: string }> {
   const existingEmail = await userRepo.findUserByEmail(pool, params.email);
   if (existingEmail) throw new AuthError(ERROR_CODES.CONFLICT, 'Email already registered');
@@ -79,8 +79,8 @@ export async function resendVerification(
 export async function login(
   pool: Pool,
   cfg: Config,
-  params: { identifier: string; password: string }
-): Promise<{ user: Omit<User, 'updatedAt'>; tokens: tokenService.TokenPair }> {
+  params: LoginRequest
+): Promise<{ user: Omit<User, 'updatedAt'>; tokens: TokenPair }> {
   const user = await userRepo.findUserByIdentifier(pool, params.identifier);
   if (!user) throw new AuthError(ERROR_CODES.UNAUTHORIZED, 'Invalid credentials');
 
@@ -117,7 +117,7 @@ export async function refresh(
   pool: Pool,
   cfg: Config,
   refreshTokenPlain: string
-): Promise<{ user: Omit<User, 'updatedAt'>; tokens: tokenService.TokenPair }> {
+): Promise<{ user: Omit<User, 'updatedAt'>; tokens: TokenPair }> {
   const tokenHash = tokenService.hashRefreshToken(refreshTokenPlain);
   const stored = await userRepo.findRefreshToken(pool, tokenHash);
   if (!stored) throw new AuthError(ERROR_CODES.UNAUTHORIZED, 'Invalid or expired refresh token');
@@ -178,7 +178,6 @@ export async function forgotPassword(
 
 export async function resetPassword(
   pool: Pool,
-  cfg: Config,
   tokenPlain: string,
   newPassword: string
 ): Promise<void> {

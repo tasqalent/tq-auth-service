@@ -1,5 +1,12 @@
 import type { Request, Response, NextFunction } from 'express';
-import { HTTP_STATUS, success, errorResponse, ERROR_CODES } from '@tasqalent/shared';
+import {
+  HTTP_STATUS,
+  success,
+  errorResponse,
+  ERROR_CODES,
+  RegisterRequest,
+  LoginRequest,
+} from '@tasqalent/shared';
 import { getPool } from '../db/pool';
 import * as authService from '../services/auth.service';
 import type { Config } from '../config/config';
@@ -8,7 +15,7 @@ export function register(cfg: Config) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const pool = getPool(cfg);
-      const result = await authService.register(pool, cfg, req.body);
+      const result = await authService.register(pool, cfg, req.body as RegisterRequest);
       success(
         res,
         {
@@ -36,7 +43,7 @@ export function login(cfg: Config) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const pool = getPool(cfg);
-      const result = await authService.login(pool, cfg, req.body);
+      const result = await authService.login(pool, cfg, req.body as LoginRequest);
       success(res, result);
     } catch (err) {
       if (err instanceof authService.AuthError) {

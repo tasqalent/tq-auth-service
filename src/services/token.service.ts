@@ -7,12 +7,6 @@ function sha256(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
-export interface TokenPair {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-}
-
 export function signAccessToken(
   user: { id: string; email: string; username: string; role: string },
   cfg: Config
